@@ -1,0 +1,8 @@
+{
+  "destructive": "confirm",
+  "shell_mode": "catalog_only",
+  "timeout_ms": 60000,
+  "max_output_chars": 20000,
+  "allow_ids": [],
+  "deny_ids": []
+}

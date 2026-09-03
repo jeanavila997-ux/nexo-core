@@ -1,0 +1,17 @@
+{
+  "name": "nexo-core",
+  "version": "0.1.0",
+  "description": "NEXO Core — núcleo headless MCP-first de agentes locais. Catálogo de 452 comandos Windows, skills SKILL.md, memória persistente, auditoria e loop ReAct via Ollama. Zero dependências npm.",
+  "type": "module",
+  "bin": { "nexo": "./nexo.mjs" },
+  "scripts": {
+    "start": "node nexo.mjs serve-stdio",
+    "http": "node nexo.mjs serve-http",
+    "convert": "node nexo.mjs catalog convert",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" },
+  "keywords": ["mcp", "headless", "agent", "ollama", "local-ai", "windows", "harness"],
+  "license": "MIT"
+}
+
