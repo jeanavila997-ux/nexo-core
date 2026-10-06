@@ -1,6 +1,6 @@
 # NEXO Core
 
-**Núcleo headless MCP-first de agentes locais** — manutenção do Windows via catálogo de 451 comandos PowerShell, skills padronizadas, memória persistente e auditoria. **Zero dependências npm.**
+**Núcleo headless MCP-first de agentes locais** — manutenção do Windows via catálogo de 452 comandos PowerShell, skills padronizadas, memória persistente e auditoria. **Zero dependências npm.**
 
 Nascido do acervo em `E:\projetos`: o catálogo de comandos (`127.xlsx`), a visão headless/MCP do guia "Headless AI e Agentes Autônomos", as skills do padrão Anthropic (agentskills) e a disciplina de harness engineering. O frontend é o [chat-ia](../chat-ia), que consome este núcleo como cliente MCP.
 
@@ -23,7 +23,7 @@ SUPERFÍCIES (qualquer cliente MCP)
 ## Quick start
 
 ```bash
-node nexo.mjs catalog convert      # 127.xlsx → data/catalog/commands.json (451 comandos)
+node nexo.mjs catalog convert      # 127.xlsx → data/catalog/commands.json (452 comandos)
 npm test                           # 53 testes
 node nexo.mjs status               # diagnóstico (Ollama, catálogo, política)
 
@@ -91,6 +91,14 @@ A política em `data/policy.json` decide ANTES de executar — nunca depende de 
 
 Pasta `data/skills/<nome>/SKILL.md` (padrão Agent Skills: frontmatter `name`/`description` + corpo). Progressive disclosure: `skills_list` devolve só metadados; `skill_read` carrega o corpo. Instaladas: `manutencao-windows`, `relatorio-sistema`.
 
+## Documentação
+
+- [ARQUITETURA.md](ARQUITETURA.md) — mapa de conexão com chat-ia e ecossistema
+- [ROADMAP.md](ROADMAP.md) — plano de evolução (Risk Engine, Policy v2, agentes)
+- [NEXO_LIBRARY.md](NEXO_LIBRARY.md) — biblioteca de prompts, comandos e referências
+- `auditorias/` — auditorias arquivadas
+- `.deploy/` — guia de deploy em VPS/Linux
+
 ## Estrutura
 
 ```
@@ -100,7 +108,7 @@ nexo-core/
 ├── src/llm/ollama.mjs        Cliente Ollama (zero deps)
 ├── src/mcp/                  server · stdio · http (JSON-RPC 2.0, sem SDK)
 ├── src/util/xlsx.mjs         Leitor .xlsx puro (zip + XML)
-├── data/catalog/commands.json   451 comandos convertidos do 127.xlsx
+├── data/catalog/commands.json   452 comandos convertidos do 127.xlsx
 ├── data/policy.json          Política de permissões
 ├── data/skills/              Skills instaladas
 └── test/                     53 testes (node --test)

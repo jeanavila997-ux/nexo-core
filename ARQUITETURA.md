@@ -17,7 +17,7 @@
                │ MCP stdio (JSON-RPC) · HTTP POST /mcp
 ┌──────────────▼──────────────────────────────────────┐
 │ 🧠 NEXO-CORE (núcleo headless — o "banco")          │
-│  • Catálogo: 451 comandos PowerShell (127.xlsx)     │
+│  • Catálogo: 452 comandos PowerShell (127.xlsx)     │
 │  • 9 tools MCP + 4 resources                        │
 │  • Skills SKILL.md (progressive disclosure)         │
 │  • Memória persistente JSONL                        │
@@ -71,6 +71,8 @@
    aberta). Use `serve-http --port 8787` só quando precisar de acesso fora
    do processo (ex.: VPS, testes remotos) — sempre em 127.0.0.1 ou via túnel
    Cloudflare.
+4. **Evolução arquitetural**: ver [ROADMAP.md](ROADMAP.md) — Risk Engine,
+   Policy v2, agentes especializados (auditoria de 2026-10-06).
 
 ## Transporte alternativo: Claude Code
 
@@ -85,3 +87,4 @@
 - [ ] Definir fronteira nexo-core × base-clientes-mcp
 - [ ] Túnel Cloudflare para acesso remoto seguro ao `serve-http`
 - [ ] Smoke test automatizado no boot do `iniciar-chat-ia.bat`
+- [ ] Deploy em VPS/Linux — ver `.deploy/`
