@@ -1,1 +1,6 @@
-__CONTENT__
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
