@@ -22,7 +22,7 @@ src/llm/ollama.mjs     Cliente Ollama (/api/chat, /api/tags)
 src/mcp/               server.mjs (JSON-RPC 2.0) · stdio.mjs · http.mjs
 src/util/xlsx.mjs      Leitor .xlsx puro (zip central directory + XML regex)
 data/                  catalog/ · policy.json · skills/ · memory/ · logs/
-test/                  53 testes com node:test
+test/                  56 testes com node:test
 ```
 
 ## Convenções
@@ -59,7 +59,7 @@ Não permitido:
 
 Antes de marcar qualquer tarefa completa:
 
-- [ ] `npm test` — 53/53 passando
+- [ ] `npm test` — 56/56 passando (suíte atual; confira o total na execução)
 - [ ] `node scripts/nexo-smoke.mjs` no chat-ia (integração MCP) — exit 0
 - [ ] Nenhum teste novo marcando destructive sem confirm
 - [ ] Arquivos alterados dentro do escopo permitido acima
