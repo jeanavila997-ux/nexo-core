@@ -3,3 +3,4 @@ data/memory/
 data/logs/
 
 .env
+VPS_DEPLOY.privado.md
