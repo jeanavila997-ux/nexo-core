@@ -1,3 +1,5 @@
 node_modules/
 data/memory/
 data/logs/
+
+.env
