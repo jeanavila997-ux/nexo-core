@@ -201,3 +201,15 @@ node nexo.mjs catalog import data/catalog/packs/rea-dev-pack.json   # reimportar
 - Os comandos legados com `{{...}}` sem `params` (`encerrar_processo`, `desativar_servico`, `desinstalar_atualizacao`, etc.) agora **bloqueiam** em vez de rodar o placeholder literal. Próximo passo: portar as regexes do Mestre do PC (`allowed-operations.json → templates[].params`) para eles.
 - Espelhar o pacote no Mestre do PC (`v10/allowed-operations.json`) — já validado contra o `OperationRegistry` real (63/63, 12 ataques por parâmetro).
 - Testar no Windows real os comandos Docker/Ollama (aqui só dry-run + validação).
+
+## Revisão 2 — achados do Codex (PR #2) e correções
+
+| Achado | Gravidade | Correção | Teste de regressão |
+|---|---|---|---|
+| `pacote="--global"` virava `npm install -g` | P1 | regex npm não aceita `-` inicial + guarda global: nenhum parâmetro pode começar com `-` (injeção de argumento) | `--global`, `-g`, `--prefix=` rejeitados |
+| `qwen3-vl:235b-cloud` escapava do bloqueio `:cloud` | P1 | regex bloqueia `cloud` em qualquer posição/caixa + checagem em execução via `/api/tags` (modelo instalado, sem `remote_host`/`remote_model`, > 10 MB) | 4 formatos de tag cloud rejeitados |
+| `Set-Location` falho não parava o script (git reset em outro repo) | P1 | `-ErrorAction Stop` em todos os comandos de projeto | todos os comandos com `MESTRE_PROJETO_PATH` conferidos |
+| Falha de comando nativo saía com exit 0 (auditoria registrava sucesso) | P2 | `exit $LASTEXITCODE` no ramo de falha; guardas `❌` usam `exit 1` | nenhum `❌ ...; return` restante |
+| `git restore` aplicava stash antigo não relacionado | P2 | sem stash: confere `git status --porcelain`, copia o arquivo para `%TEMP%` e restaura | `stash` ausente do comando |
+
+Achado extra (na validação contra o Mestre do PC): lookahead `(?!.*x)` vaza para o resto do comando no `OperationRegistry` do Mestre, que monta uma regex única para o comando inteiro. Corrigido para `(?![^"]*x)`, limitado ao valor entre aspas.

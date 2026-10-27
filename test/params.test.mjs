@@ -15,7 +15,7 @@ const VALIDOS = {
   linhas: '200', nome_modelo: 'nomic-embed-text', tag: 'v1.2.0',
 };
 const ATAQUES = ['x"; Remove-Item C:\\ -Recurse #', 'a$(whoami)', 'a`n calc', 'a | calc', 'a & calc',
-  '..\\..\\Windows\\System32\\config', 'https://x.com/?a=1&b=2', 'a;b', "a'b", 'a\nb', ''];
+  '..\\..\\Windows\\System32\\config', 'https://x.com/?a=1&b=2', 'a;b', "a'b", 'a\nb', '', '--global', '-rf'];
 
 test('pacote: todo comando parametrizado declara exatamente os placeholders que usa', () => {
   assert.ok(templates.length >= 30);
@@ -43,9 +43,43 @@ test('pacote: injeção, traversal e metacaracteres são rejeitados em TODO par�
   }
 });
 
-test('modelos :cloud são bloqueados (dado privado não sai da máquina)', () => {
-  const t = templates.find((c) => c.id === 'ollama_gerar_embedding');
-  assert.equal(resolveCommand(t, { nome_modelo: 'qwen3-coder:cloud', texto: 'oi' }).ok, false);
+test('modelos cloud são bloqueados em qualquer formato de tag (dado privado não sai da máquina)', () => {
+  for (const id of ['ollama_gerar_embedding', 'ollama_descrever_imagem']) {
+    const t = templates.find((c) => c.id === id);
+    const base = { texto: 'oi', caminho: 'C:\\img\\a.png' };
+    for (const m of ['qwen3-coder:cloud', 'qwen3-vl:235b-cloud', 'gpt-oss:120b-CLOUD', 'cloud-model']) {
+      assert.equal(resolveCommand(t, { ...base, nome_modelo: m }).ok, false, `${id} aceitou ${m}`);
+    }
+    // defesa em profundidade: em execução o modelo precisa existir localmente e não ser remoto
+    assert.match(t.cmd, /api\/tags/);
+    assert.match(t.cmd, /remote_host/);
+  }
+});
+
+test('regressão Codex: --global não vira instalação global', () => {
+  const t = templates.find((c) => c.id === 'npm_instalar_dev_dependencia');
+  for (const v of ['--global', '-g', '--prefix=C:\\x']) assert.equal(resolveCommand(t, { pacote: v }).ok, false, v);
+  assert.equal(resolveCommand(t, { pacote: '@types/node' }).ok, true);
+});
+
+test('regressão Codex: comandos de projeto param se Set-Location falhar', () => {
+  const proj = pack.commands.filter((c) => c.cmd.includes('MESTRE_PROJETO_PATH'));
+  assert.ok(proj.length > 10);
+  for (const c of proj) assert.match(c.cmd, /Set-Location -LiteralPath \$env:MESTRE_PROJETO_PATH -ErrorAction Stop/, c.id);
+});
+
+test('regressão Codex: falha de comando nativo propaga exit code', () => {
+  for (const c of pack.commands.filter((x) => x.cmd.includes('$ec = $LASTEXITCODE'))) {
+    assert.match(c.cmd, /exit \$\(if \(\$ec\)/, c.id);
+  }
+  // nenhuma guarda de erro (❌) termina com return (que daria exit 0)
+  for (const c of pack.commands) assert.doesNotMatch(c.cmd, /❌[^}]*; return \}/, c.id);
+});
+
+test('regressão Codex: git restore não aplica stash antigo', () => {
+  const t = templates.find((c) => c.id === 'git_descartar_alteracoes_arquivo');
+  assert.doesNotMatch(t.cmd, /stash/);
+  assert.match(t.cmd, /git status --porcelain/);
 });
 
 test('comando legado com {{PLACEHOLDER}} sem params NÃO executa literal', () => {

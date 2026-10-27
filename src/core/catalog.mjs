@@ -53,6 +53,11 @@ export function resolveCommand(command, params = {}) {
     if (typeof value !== 'string' || value.length === 0) {
       return { ok: false, error: `Falta o parâmetro '${key}'. Envie params: {"${key}": "..."} (formato: ${regexSource}).` };
     }
+    // Valor com cara de opção (-x / --global) nunca entra: aspas não impedem o
+    // programa nativo de interpretá-lo como flag (injeção de argumento).
+    if (value.startsWith('-')) {
+      return { ok: false, error: `Parâmetro '${key}' não pode começar com '-' (seria lido como opção do comando).` };
+    }
     if (value.length > MAX_PARAM_LEN || !new RegExp(`^(?:${regexSource})$`, 'u').test(value)) {
       return { ok: false, error: `Parâmetro '${key}' inválido para '${command.id}'. Formato aceito: ${regexSource}` };
     }
