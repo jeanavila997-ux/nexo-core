@@ -33,6 +33,68 @@ export function convertXlsxToCatalog(xlsxBuffer, source = '127.xlsx') {
   return commands;
 }
 
+// ---- Parâmetros seguros ({{PLACEHOLDER}} + regex por parâmetro) ----
+// Um comando pode declarar `params: { nome: "<regex>" }`. O valor só entra no comando
+// se casar INTEIRO com a regex (padrão anti-injeção: sem $ ` ( ) ; | & nas regexes).
+// Placeholder que sobrar sem valor = comando não executa (nunca roda "{{NOME}}" literal).
+const PLACEHOLDER = /\{\{([A-Z0-9_]+)\}\}/g;
+const MAX_PARAM_LEN = 1024;
+
+export function placeholdersOf(cmdText) {
+  return [...new Set([...String(cmdText).matchAll(PLACEHOLDER)].map((m) => m[1]))];
+}
+
+export function resolveCommand(command, params = {}) {
+  let text = command.cmd;
+  const defs = command.params ?? {};
+  const given = params && typeof params === 'object' ? params : {};
+  for (const [key, regexSource] of Object.entries(defs)) {
+    const value = given[key];
+    if (typeof value !== 'string' || value.length === 0) {
+      return { ok: false, error: `Falta o parâmetro '${key}'. Envie params: {"${key}": "..."} (formato: ${regexSource}).` };
+    }
+    // Valor com cara de opção (-x / --global) nunca entra: aspas não impedem o
+    // programa nativo de interpretá-lo como flag (injeção de argumento).
+    if (value.startsWith('-')) {
+      return { ok: false, error: `Parâmetro '${key}' não pode começar com '-' (seria lido como opção do comando).` };
+    }
+    if (value.length > MAX_PARAM_LEN || !new RegExp(`^(?:${regexSource})$`, 'u').test(value)) {
+      return { ok: false, error: `Parâmetro '${key}' inválido para '${command.id}'. Formato aceito: ${regexSource}` };
+    }
+    text = text.split(`{{${key.toUpperCase()}}}`).join(value);
+  }
+  const leftover = placeholdersOf(text);
+  if (leftover.length) {
+    return {
+      ok: false,
+      error: `'${command.id}' tem placeholder(s) sem definição segura: ${leftover.join(', ')}. ` +
+        'Ele precisa de "params" com regex no catálogo antes de poder executar.',
+    };
+  }
+  return { ok: true, cmd: text };
+}
+
+// Mescla um pacote externo no catálogo. Idempotente: id igual + mesmo source = atualiza;
+// id igual de OUTRA origem = erro (não sobrescreve comando de terceiros).
+export function mergeCatalog(base, extra, source) {
+  const out = [...base];
+  const idx = new Map(out.map((c, i) => [c.id, i]));
+  let added = 0, updated = 0;
+  for (const c of extra) {
+    if (!c.id || !c.cmd || !c.title || !c.category) throw new Error(`Registro inválido no pacote: ${JSON.stringify(c).slice(0, 120)}`);
+    for (const [k, re] of Object.entries(c.params ?? {})) new RegExp(re, 'u'); // regex compila?
+    const rec = { ...c, source: c.source ?? source };
+    if (idx.has(c.id)) {
+      const cur = out[idx.get(c.id)];
+      if (cur.source !== rec.source) throw new Error(`ID '${c.id}' já existe com origem '${cur.source}' — renomeie no pacote.`);
+      out[idx.get(c.id)] = rec; updated++;
+    } else {
+      idx.set(c.id, out.length); out.push(rec); added++;
+    }
+  }
+  return { commands: out, added, updated };
+}
+
 export function saveCatalog(commands, filePath) {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, JSON.stringify(commands, null, 2), 'utf8');
