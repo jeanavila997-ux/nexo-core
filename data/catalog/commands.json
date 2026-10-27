@@ -3606,5 +3606,732 @@
     "cmd": "choco install {{PACOTE}} -y; Write-Host \"✅ Pacote {{PACOTE}} instalado via Chocolatey!\" -ForegroundColor Green",
     "destructive": true,
     "source": "127.xlsx"
+  },
+  {
+    "id": "python_pip_freeze_requirements",
+    "title": "Gerar requirements.txt",
+    "category": "Python",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; $py = if (Get-Command py -ErrorAction SilentlyContinue) { \"py\" } else { \"python\" }; & $py -m pip freeze --local | Out-File -FilePath requirements.txt -Encoding utf8; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ requirements.txt gerado em UTF-8\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Congela dependências em requirements.txt (UTF-8 — evita o UTF-16 do '>' no PowerShell 5.1).",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "python_rodar_testes_unittest",
+    "title": "Rodar testes unittest do projeto",
+    "category": "Python",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; $py = if (Get-Command py -ErrorAction SilentlyContinue) { \"py\" } else { \"python\" }; & $py -m unittest discover -v; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Testes concluídos\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Descobre e roda os testes unitários do projeto.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "python_info_site_packages",
+    "title": "Ver caminhos do Python (site)",
+    "category": "Python",
+    "cmd": "$py = if (Get-Command py -ErrorAction SilentlyContinue) { \"py\" } else { \"python\" }; & $py -m site",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Mostra site-packages e sys.path — diagnóstico de 'módulo não encontrado'.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "python_reparar_pip_ensurepip",
+    "title": "Reparar pip (ensurepip)",
+    "category": "Python",
+    "cmd": "$py = if (Get-Command py -ErrorAction SilentlyContinue) { \"py\" } else { \"python\" }; & $py -m ensurepip --upgrade; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ pip reparado\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Reinstala o pip quando ele some/quebra. Escopo do usuário.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_log_grafico",
+    "title": "Histórico Git em grafo",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git log --oneline --graph --decorate -30",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Últimos 30 commits em grafo.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_diff_nao_preparado",
+    "title": "Ver alterações não preparadas",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git --no-pager diff --stat; git --no-pager diff",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Diferenças working tree vs index.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_diff_staged",
+    "title": "Ver alterações no stage",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git --no-pager diff --staged --stat; git --no-pager diff --staged",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "O que vai entrar no próximo commit — revise antes do git_add_commit_push.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_listar_branches_todas",
+    "title": "Listar branches (locais e remotas)",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git branch -a -vv",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Branches locais e remotas com upstream.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_desfazer_ultimo_commit_soft",
+    "title": "Desfazer último commit (mantém mudanças)",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git tag \"backup-antes-reset-$(Get-Date -Format yyyyMMdd-HHmmss)\"; git reset --soft HEAD~1; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Commit desfeito; mudanças continuam no stage (tag de backup criada)\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Reset --soft com tag de backup automática.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_listar_remotos",
+    "title": "Listar remotos",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git remote -v",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Mostra origin/upstream configurados.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_fetch_todos",
+    "title": "Buscar atualizações de todos os remotos",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git fetch --all --prune; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Fetch concluído (nada mesclado)\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Baixa refs remotas sem mexer no working tree.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "git_reflog",
+    "title": "Ver reflog (recuperar commits)",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git --no-pager reflog -30",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Histórico do HEAD — achar commits 'perdidos'.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_listar_imagens",
+    "title": "Listar imagens Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker images",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Imagens locais.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_listar_volumes",
+    "title": "Listar volumes Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker volume ls",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Volumes nomeados.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_listar_redes",
+    "title": "Listar redes Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker network ls",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Redes Docker.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_uso_disco",
+    "title": "Uso de disco do Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker system df -v",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Quanto imagens/containers/volumes/cache ocupam.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_limpeza_segura",
+    "title": "Limpeza segura do Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker system df; docker container prune -f; docker image prune -f; docker builder prune -f; docker system df; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Limpeza concluída (volumes e imagens com tag preservados)\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "alto",
+    "description": "Remove containers parados, imagens órfãs e cache de build. NÃO usa -a nem apaga volumes.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_stats_snapshot",
+    "title": "Estatísticas dos containers",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker stats --no-stream",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Foto de CPU/RAM/rede (sem stream).",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_parar_todos",
+    "title": "Parar todos os containers",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; $ids = docker ps -q; if ($ids) { docker stop $ids; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Containers parados\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red } } else { Write-Host \"Nenhum container rodando.\" }",
+    "destructive": true,
+    "riskTier": "alto",
+    "description": "Para todos os containers em execução.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_compose_logs",
+    "title": "Logs do Docker Compose",
+    "category": "Docker",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker compose logs --tail 200 --timestamps",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Logs dos serviços do compose do projeto (sem -f).",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "docker_compose_status",
+    "title": "Status do Docker Compose",
+    "category": "Docker",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker compose ps",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Status dos serviços do compose do projeto.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_iniciar_projeto",
+    "title": "Criar package.json",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; if (Test-Path package.json) { Write-Host \"⚠️ package.json já existe — nada feito.\" -ForegroundColor Yellow; return }; npm init -y; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ package.json criado\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Cria package.json padrão; não sobrescreve existente.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_atualizar_dependencias",
+    "title": "Atualizar dependências (semver)",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; npm update --ignore-scripts; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Dependências atualizadas\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Atualiza dentro do range do package.json.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_listar_dependencias",
+    "title": "Árvore de dependências",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; npm list --depth=0",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Dependências diretas do projeto.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_listar_scripts",
+    "title": "Listar scripts do package.json",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; npm run",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Scripts disponíveis — sem executar nenhum.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_rodar_testes",
+    "title": "Rodar testes (npm test)",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; npm test; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Testes passaram\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Executa o script test do projeto.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_audit_fix_seguro",
+    "title": "Corrigir vulnerabilidades (sem breaking)",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; Copy-Item package-lock.json \"package-lock.backup-$(Get-Date -Format yyyyMMdd-HHmmss).json\" -ErrorAction SilentlyContinue; npm audit fix --ignore-scripts; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ audit fix aplicado (lock anterior salvo)\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Só correções compatíveis (nunca --force); faz backup do lock.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_ver_configuracao",
+    "title": "Ver configuração do npm",
+    "category": "Node.js",
+    "cmd": "npm config list",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Registry, proxy, prefix. ⚠️ Pode exibir token parcial do .npmrc.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "npm_ci_limpo",
+    "title": "Instalação limpa (npm ci)",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; if (-not (Test-Path package-lock.json)) { Write-Host \"❌ Sem package-lock.json.\" -ForegroundColor Red; return }; npm ci --ignore-scripts; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ npm ci concluído\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Reinstala exatamente o lock. Apaga node_modules.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "ts_iniciar_tsconfig",
+    "title": "Criar tsconfig.json",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; if (Test-Path tsconfig.json) { Write-Host \"⚠️ tsconfig.json já existe.\" -ForegroundColor Yellow; return }; if (-not (Test-Path node_modules\\.bin\\tsc.cmd)) { Write-Host \"❌ TypeScript não está no projeto. Use npm_instalar_dev_dependencia com pacote=typescript.\" -ForegroundColor Red; return }; .\\node_modules\\.bin\\tsc.cmd --init; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ tsconfig.json criado\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Usa o tsc LOCAL do projeto (sem global).",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "ollama_modelos_em_execucao",
+    "title": "Modelos Ollama em execução",
+    "category": "Ollama",
+    "cmd": "if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) { Write-Host \"❌ Ollama não encontrado.\" -ForegroundColor Red; return }; ollama ps",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Modelos carregados na RAM/VRAM agora.",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "ollama_verificar_servidor",
+    "title": "Verificar servidor Ollama",
+    "category": "Ollama",
+    "cmd": "try { $v = Invoke-RestMethod -Uri \"http://127.0.0.1:11434/api/version\" -TimeoutSec 5; Write-Host \"✅ Ollama ativo — versão $($v.version)\" -ForegroundColor Green } catch { Write-Host \"❌ Ollama não responde em 127.0.0.1:11434. Abra o app Ollama.\" -ForegroundColor Red }; Get-NetTCPConnection -LocalPort 11434 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess | Format-Table -AutoSize",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Checa se o servidor está de pé e em qual interface escuta (alerta se 0.0.0.0).",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "ollama_ver_variaveis_servidor",
+    "title": "Ver configuração do servidor Ollama",
+    "category": "Ollama",
+    "cmd": "Get-ChildItem Env: | Where-Object Name -like \"OLLAMA_*\" | Format-Table Name,Value -AutoSize; [Environment]::GetEnvironmentVariables(\"User\").GetEnumerator() | Where-Object Key -like \"OLLAMA_*\" | Format-Table Key,Value -AutoSize",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Mostra OLLAMA_HOST, OLLAMA_MODELS etc. já definidas (sessão e usuário).",
+    "source": "rea-dev-pack"
+  },
+  {
+    "id": "python_checar_sintaxe",
+    "title": "Checar sintaxe de script Python",
+    "category": "Python",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; $py = if (Get-Command py -ErrorAction SilentlyContinue) { \"py\" } else { \"python\" }; & $py -m py_compile \"{{ARQUIVO}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Sintaxe OK: {{ARQUIVO}}\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Compila sem executar. Caminho relativo ao projeto.",
+    "source": "rea-dev-pack",
+    "params": {
+      "arquivo": "^(?!.*\\.\\.)[a-zA-Z0-9_./\\\\ -]{1,200}$"
+    }
+  },
+  {
+    "id": "python_validar_json",
+    "title": "Validar/formatar arquivo JSON",
+    "category": "Python",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; $py = if (Get-Command py -ErrorAction SilentlyContinue) { \"py\" } else { \"python\" }; & $py -m json.tool \"{{ARQUIVO}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ JSON válido\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Valida e imprime JSON formatado (não altera o arquivo).",
+    "source": "rea-dev-pack",
+    "params": {
+      "arquivo": "^(?!.*\\.\\.)[a-zA-Z0-9_./\\\\ -]{1,200}$"
+    }
+  },
+  {
+    "id": "listar_conteudo_zip",
+    "title": "Listar conteúdo de ZIP",
+    "category": "Python",
+    "cmd": "if (-not (Test-Path -LiteralPath \"{{CAMINHO}}\")) { Write-Host \"❌ Arquivo não encontrado.\" -ForegroundColor Red; return }; Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[IO.Compression.ZipFile]::OpenRead(\"{{CAMINHO}}\"); try { $z.Entries | Select-Object FullName,@{N=\"KB\";E={[math]::Round($_.Length/1KB,1)}} | Format-Table -AutoSize } finally { $z.Dispose() }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Lista arquivos de um ZIP sem extrair (nativo .NET, não depende de Python).",
+    "source": "rea-dev-pack",
+    "params": {
+      "caminho": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$"
+    }
+  },
+  {
+    "id": "git_criar_branch",
+    "title": "Criar e trocar de branch",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git switch -c \"{{BRANCH}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Branch {{BRANCH}} criada\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Cria branch nova a partir da atual.",
+    "source": "rea-dev-pack",
+    "params": {
+      "branch": "^(?!.*\\.\\.)[a-zA-Z0-9][a-zA-Z0-9_./-]{0,99}$"
+    }
+  },
+  {
+    "id": "git_descartar_alteracoes_arquivo",
+    "title": "Descartar alterações de um arquivo",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git stash push -m \"backup-restore\" -- \"{{ARQUIVO}}\"; git stash apply --quiet; git restore -- \"{{ARQUIVO}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ {{ARQUIVO}} restaurado (cópia guardada no stash)\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "alto",
+    "description": "Volta o arquivo ao último commit, guardando cópia no stash antes.",
+    "source": "rea-dev-pack",
+    "params": {
+      "arquivo": "^(?!.*\\.\\.)[a-zA-Z0-9_./\\\\ -]{1,200}$"
+    }
+  },
+  {
+    "id": "git_criar_tag_versao",
+    "title": "Criar tag de versão",
+    "category": "Git",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; git tag -a \"{{TAG}}\" -m \"Versão {{TAG}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Tag {{TAG}} criada (push não feito)\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Tag anotada local. Não faz push.",
+    "source": "rea-dev-pack",
+    "params": {
+      "tag": "^v?[0-9]{1,4}([.][0-9]{1,4}){0,3}(-[a-zA-Z0-9.]{1,20})?$"
+    }
+  },
+  {
+    "id": "docker_remover_imagem",
+    "title": "Remover imagem Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker rmi \"{{IMAGEM}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Imagem removida\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Remove imagem local (falha se estiver em uso).",
+    "source": "rea-dev-pack",
+    "params": {
+      "imagem": "^[a-z0-9][a-z0-9_./:@-]{0,199}$"
+    }
+  },
+  {
+    "id": "docker_baixar_imagem",
+    "title": "Baixar imagem Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker pull \"{{IMAGEM}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Imagem baixada\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Baixa imagem do registry. Prefira imagens oficiais/verificadas.",
+    "source": "rea-dev-pack",
+    "params": {
+      "imagem": "^[a-z0-9][a-z0-9_./:@-]{0,199}$"
+    }
+  },
+  {
+    "id": "docker_logs_container",
+    "title": "Ver logs de container",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker logs --tail {{LINHAS}} --timestamps \"{{CONTAINER}}\"",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Últimas N linhas (sem -f: o executor não segura stream).",
+    "source": "rea-dev-pack",
+    "params": {
+      "container": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$",
+      "linhas": "^[0-9]{1,4}$"
+    }
+  },
+  {
+    "id": "docker_criar_volume",
+    "title": "Criar volume Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker volume create \"{{NOME}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Volume criado\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Cria volume nomeado.",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    }
+  },
+  {
+    "id": "docker_criar_rede",
+    "title": "Criar rede Docker",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker network create \"{{NOME}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Rede criada\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Rede bridge isolada.",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    }
+  },
+  {
+    "id": "docker_inspecionar",
+    "title": "Inspecionar container/imagem",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker inspect \"{{ALVO}}\"",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "JSON completo. ⚠️ Pode conter variáveis de ambiente com segredos.",
+    "source": "rea-dev-pack",
+    "params": {
+      "alvo": "^[a-z0-9][a-z0-9_./:@-]{0,199}$"
+    }
+  },
+  {
+    "id": "docker_iniciar_container",
+    "title": "Iniciar container",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker start \"{{CONTAINER}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Iniciado\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Inicia container parado.",
+    "source": "rea-dev-pack",
+    "params": {
+      "container": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    }
+  },
+  {
+    "id": "docker_reiniciar_container",
+    "title": "Reiniciar container",
+    "category": "Docker",
+    "cmd": "if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Write-Host \"❌ Docker não encontrado. Use instalar_docker_desktop.\" -ForegroundColor Red; return }; docker restart \"{{CONTAINER}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Reiniciado\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Reinicia container.",
+    "source": "rea-dev-pack",
+    "params": {
+      "container": "^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$"
+    }
+  },
+  {
+    "id": "npm_instalar_dev_dependencia",
+    "title": "Instalar devDependency",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; npm install --save-dev --ignore-scripts \"{{PACOTE}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ {{PACOTE}} instalado como devDependency\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Instala no projeto com --ignore-scripts (bloqueia postinstall malicioso).",
+    "source": "rea-dev-pack",
+    "params": {
+      "pacote": "^(@[a-z0-9-][a-z0-9-._]{0,100}/)?[a-z0-9-][a-z0-9-._]{0,213}$"
+    }
+  },
+  {
+    "id": "npm_remover_pacote",
+    "title": "Remover pacote do projeto",
+    "category": "Node.js",
+    "cmd": "if (-not $env:MESTRE_PROJETO_PATH) { Write-Host \"❌ MESTRE_PROJETO_PATH não definido.\" -ForegroundColor Red; return }; Set-Location -LiteralPath $env:MESTRE_PROJETO_PATH; npm uninstall \"{{PACOTE}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ {{PACOTE}} removido\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": true,
+    "riskTier": "medio",
+    "description": "Remove dependência do projeto.",
+    "source": "rea-dev-pack",
+    "params": {
+      "pacote": "^(@[a-z0-9-][a-z0-9-._]{0,100}/)?[a-z0-9-][a-z0-9-._]{0,213}$"
+    }
+  },
+  {
+    "id": "buscar_texto_em_arquivo",
+    "title": "Buscar texto em arquivo",
+    "category": "Terminal",
+    "cmd": "Select-String -LiteralPath \"{{CAMINHO}}\" -Pattern \"{{TEXTO}}\" -SimpleMatch | Select-Object LineNumber,Line | Format-Table -AutoSize -Wrap",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao grep (texto literal, não regex).",
+    "source": "rea-dev-pack",
+    "params": {
+      "caminho": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$",
+      "texto": "^[a-zA-Z0-9À-ÿ _.,:@#/=+-]{1,128}$"
+    }
+  },
+  {
+    "id": "buscar_texto_em_pasta",
+    "title": "Buscar texto em pasta (recursivo)",
+    "category": "Terminal",
+    "cmd": "Get-ChildItem -LiteralPath \"{{PASTA}}\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -lt 5MB } | Select-String -Pattern \"{{TEXTO}}\" -SimpleMatch | Select-Object -First 200 Path,LineNumber,Line | Format-Table -AutoSize -Wrap",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao grep -r (limite 200 resultados, ignora arquivos >5MB).",
+    "source": "rea-dev-pack",
+    "params": {
+      "pasta": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$",
+      "texto": "^[a-zA-Z0-9À-ÿ _.,:@#/=+-]{1,128}$"
+    }
+  },
+  {
+    "id": "encontrar_arquivos_por_tipo",
+    "title": "Encontrar arquivos por padrão",
+    "category": "Terminal",
+    "cmd": "Get-ChildItem -LiteralPath \"{{PASTA}}\" -Recurse -File -Filter \"{{FILTRO}}\" -ErrorAction SilentlyContinue | Select-Object -First 500 FullName,@{N=\"KB\";E={[math]::Round($_.Length/1KB,1)}},LastWriteTime | Format-Table -AutoSize",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao find -name (ex.: filtro=*.py).",
+    "source": "rea-dev-pack",
+    "params": {
+      "pasta": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$",
+      "filtro": "^[*]?[a-zA-Z0-9_.*-]{1,32}$"
+    }
+  },
+  {
+    "id": "ver_final_de_log",
+    "title": "Ver final de arquivo de log",
+    "category": "Terminal",
+    "cmd": "Get-Content -LiteralPath \"{{CAMINHO}}\" -Tail {{LINHAS}} -ErrorAction Stop",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao tail -n (sem -f/-Wait: o executor não segura stream).",
+    "source": "rea-dev-pack",
+    "params": {
+      "caminho": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$",
+      "linhas": "^[0-9]{1,4}$"
+    }
+  },
+  {
+    "id": "procurar_processo_por_nome",
+    "title": "Procurar processo por nome",
+    "category": "Processos",
+    "cmd": "Get-Process -Name \"*{{NOME}}*\" -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,@{N=\"RAM(MB)\";E={[math]::Round($_.WorkingSet64/1MB,1)}},StartTime,Path | Format-Table -AutoSize",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao ps aux | grep.",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome": "^[a-zA-Z0-9_. -]{1,128}$"
+    }
+  },
+  {
+    "id": "encerrar_processo_por_pid",
+    "title": "Encerrar processo por PID",
+    "category": "Processos",
+    "cmd": "$p = Get-Process -Id {{PID}} -ErrorAction SilentlyContinue; if (-not $p) { Write-Host \"⚠️ PID {{PID}} não existe.\" -ForegroundColor Yellow; return }; if ($p.ProcessName -in @(\"csrss\",\"wininit\",\"winlogon\",\"lsass\",\"services\",\"smss\",\"System\",\"svchost\",\"MsMpEng\")) { Write-Host \"⛔ Processo crítico do Windows — bloqueado.\" -ForegroundColor Red; return }; Stop-Process -Id {{PID}} -Force; if ($?) { Write-Host \"✅ $($p.ProcessName) ({{PID}}) encerrado.\" -ForegroundColor Green }",
+    "destructive": true,
+    "riskTier": "alto",
+    "description": "Equivalente ao kill -9, com lista de processos críticos protegidos.",
+    "source": "rea-dev-pack",
+    "params": {
+      "pid": "^[0-9]{1,7}$"
+    }
+  },
+  {
+    "id": "tamanho_de_pasta",
+    "title": "Tamanho de uma pasta",
+    "category": "Disco",
+    "cmd": "if (-not (Test-Path -LiteralPath \"{{PASTA}}\")) { Write-Host \"❌ Pasta não encontrada.\" -ForegroundColor Red; return }; $s = (Get-ChildItem -LiteralPath \"{{PASTA}}\" -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum; Write-Host (\"📁 {{PASTA}}: {0:N2} GB ({1:N0} MB)\" -f ($s/1GB), ($s/1MB))",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao du -sh.",
+    "source": "rea-dev-pack",
+    "params": {
+      "pasta": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$"
+    }
+  },
+  {
+    "id": "http_ver_cabecalhos",
+    "title": "Ver cabeçalhos HTTP de um site",
+    "category": "Rede",
+    "cmd": "curl.exe -sS -I --max-time 15 \"{{URL}}\"",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Usa curl.exe (no PS 5.1 'curl' é alias do Invoke-WebRequest). URL sem query string.",
+    "source": "rea-dev-pack",
+    "params": {
+      "url": "^https?://[a-zA-Z0-9.-]{1,253}(:[0-9]{1,5})?(/[a-zA-Z0-9._~/-]{0,512})?$"
+    }
+  },
+  {
+    "id": "status_servico_windows",
+    "title": "Status de serviço do Windows",
+    "category": "Sistema",
+    "cmd": "Get-Service -Name \"{{NOME_SERVICO}}\" -ErrorAction Stop | Select-Object Name,DisplayName,Status,StartType | Format-List",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao systemctl status.",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome_servico": "^[a-zA-Z0-9_. -]{1,128}$"
+    }
+  },
+  {
+    "id": "eventos_de_servico",
+    "title": "Eventos recentes de um serviço",
+    "category": "Sistema",
+    "cmd": "Get-WinEvent -FilterHashtable @{LogName=\"System\"; ProviderName=\"Service Control Manager\"; StartTime=(Get-Date).AddDays(-7)} -MaxEvents 300 -ErrorAction SilentlyContinue | Where-Object { $_.Message -like \"*{{NOME_SERVICO}}*\" } | Select-Object -First 50 TimeCreated,Id,LevelDisplayName,Message | Format-Table -AutoSize -Wrap",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Equivalente ao journalctl -u (últimos 7 dias).",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome_servico": "^[a-zA-Z0-9_. -]{1,128}$"
+    }
+  },
+  {
+    "id": "buscar_historico_powershell",
+    "title": "Buscar no histórico do PowerShell",
+    "category": "Terminal",
+    "cmd": "$h = (Get-PSReadLineOption).HistorySavePath; if (-not (Test-Path $h)) { Write-Host \"Sem histórico.\" ; return }; Select-String -LiteralPath $h -Pattern \"{{TEXTO}}\" -SimpleMatch | Select-Object -Last 50 LineNumber,Line | Format-Table -AutoSize -Wrap",
+    "destructive": false,
+    "riskTier": "medio",
+    "description": "Equivalente ao history | grep. ⚠️ Histórico pode conter segredos digitados.",
+    "source": "rea-dev-pack",
+    "params": {
+      "texto": "^[a-zA-Z0-9À-ÿ _.,:@#/=+-]{1,128}$"
+    }
+  },
+  {
+    "id": "ollama_parar_modelo",
+    "title": "Descarregar modelo Ollama",
+    "category": "Ollama",
+    "cmd": "if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) { Write-Host \"❌ Ollama não encontrado.\" -ForegroundColor Red; return }; ollama stop \"{{NOME_MODELO}}\"; if ($LASTEXITCODE -eq 0) { Write-Host \"✅ Modelo descarregado da memória\" -ForegroundColor Green } else { Write-Host \"❌ Falhou (código $LASTEXITCODE)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Libera RAM/VRAM sem apagar o modelo.",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome_modelo": "^(?!.*:cloud)[a-zA-Z0-9_:.\\-]{1,64}$"
+    }
+  },
+  {
+    "id": "ollama_gerar_embedding",
+    "title": "Gerar embedding (API local)",
+    "category": "Ollama",
+    "cmd": "try { $b = @{ model=\"{{NOME_MODELO}}\"; input=\"{{TEXTO}}\" } | ConvertTo-Json -Compress; $r = Invoke-RestMethod -Uri \"http://127.0.0.1:11434/api/embed\" -Method Post -Body $b -ContentType \"application/json\" -TimeoutSec 60; $v = $r.embeddings[0]; Write-Host \"✅ Vetor com $($v.Count) dimensões. Primeiros 8: $(($v | Select-Object -First 8) -join \", \")\" -ForegroundColor Green } catch { Write-Host \"❌ $($_.Exception.Message)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Via API local /api/embed (só 127.0.0.1; modelos :cloud bloqueados pela regex).",
+    "source": "rea-dev-pack",
+    "params": {
+      "nome_modelo": "^(?!.*:cloud)[a-zA-Z0-9_:.\\-]{1,64}$",
+      "texto": "^[a-zA-Z0-9À-ÿ _.,:@#/=+-]{1,128}$"
+    }
+  },
+  {
+    "id": "ollama_descrever_imagem",
+    "title": "Descrever imagem com modelo de visão",
+    "category": "Ollama",
+    "cmd": "if (-not (Test-Path -LiteralPath \"{{CAMINHO}}\")) { Write-Host \"❌ Imagem não encontrada.\" -ForegroundColor Red; return }; try { $img = [Convert]::ToBase64String([IO.File]::ReadAllBytes(\"{{CAMINHO}}\")); $b = @{ model=\"{{NOME_MODELO}}\"; prompt=\"Descreva esta imagem em português.\"; images=@($img); stream=$false } | ConvertTo-Json -Compress; $r = Invoke-RestMethod -Uri \"http://127.0.0.1:11434/api/generate\" -Method Post -Body $b -ContentType \"application/json\" -TimeoutSec 180; Write-Host $r.response } catch { Write-Host \"❌ $($_.Exception.Message)\" -ForegroundColor Red }",
+    "destructive": false,
+    "riskTier": "baixo",
+    "description": "Imagem local → modelo multimodal local (llava, gemma3, etc.). Nada sai da máquina.",
+    "source": "rea-dev-pack",
+    "params": {
+      "caminho": "^(?!.*\\.\\.)[a-zA-Z]:\\\\[a-zA-Z0-9_.\\\\ -]{1,255}$",
+      "nome_modelo": "^(?!.*:cloud)[a-zA-Z0-9_:.\\-]{1,64}$"
+    }
   }
 ]

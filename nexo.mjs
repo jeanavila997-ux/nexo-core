@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // nexo.mjs — CLI do NEXO Core: núcleo headless MCP-first de agentes locais.
 // Comandos: serve-stdio | serve-http | agent | catalog | memory | skills | status
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { convertXlsxToCatalog, saveCatalog, Catalog } from './src/core/catalog.mjs';
+import { convertXlsxToCatalog, saveCatalog, Catalog, mergeCatalog } from './src/core/catalog.mjs';
 import { Policy } from './src/core/permissions.mjs';
 import { Memory } from './src/core/memory.mjs';
 import { Skills } from './src/core/skills.mjs';
@@ -96,6 +96,7 @@ Uso:
   node nexo.mjs serve-http [--port 8787]       Servidor MCP sobre HTTP (127.0.0.1)
   node nexo.mjs agent "OBJETIVO" [--max-steps N] [--model M]   Loop ReAct via Ollama
   node nexo.mjs catalog convert [--xlsx arq]  Converte 127.xlsx em data/catalog/commands.json
+  node nexo.mjs catalog import <pacote.json>  Mescla um pacote (idempotente) no catálogo
   node nexo.mjs catalog search "termos"       Busca no catálogo
   node nexo.mjs catalog get <id>              Detalhes de um comando
   node nexo.mjs catalog categories            Categorias e contagens
@@ -177,10 +178,31 @@ async function main() {
           process.exitCode = 1;
           return;
         }
-        const commands = convertXlsxToCatalog(readFileSync(xlsxPath), '127.xlsx');
+        let commands = convertXlsxToCatalog(readFileSync(xlsxPath), '127.xlsx');
+        // Reaplica os pacotes de data/catalog/packs para não perdê-los na reconversão.
+        const packsDir = join(dirname(PATHS.catalog), 'packs');
+        if (existsSync(packsDir)) {
+          for (const f of readdirSync(packsDir).filter((n) => n.endsWith('.json')).sort()) {
+            const pack = JSON.parse(readFileSync(join(packsDir, f), 'utf8'));
+            const r = mergeCatalog(commands, pack.commands ?? pack, pack.source ?? f.replace(/\.json$/, ''));
+            commands = r.commands;
+            console.log(`  + pacote ${f}: ${r.added} novos, ${r.updated} atualizados`);
+          }
+        }
         saveCatalog(commands, PATHS.catalog);
         const destr = commands.filter((c) => c.destructive).length;
         console.log(`Catálogo convertido: ${commands.length} comandos (${destr} destrutivos) → ${PATHS.catalog}`);
+        return;
+      }
+      if (sub === 'import') {
+        // node nexo.mjs catalog import data/catalog/packs/<pacote>.json
+        const file = rest[1] ? resolve(rest[1]) : '';
+        if (!file || !existsSync(file)) { console.error('Uso: catalog import <pacote.json>'); process.exitCode = 2; return; }
+        const pack = JSON.parse(readFileSync(file, 'utf8'));
+        const base = Catalog.load(PATHS.catalog).commands;
+        const r = mergeCatalog(base, pack.commands ?? pack, pack.source ?? 'pacote');
+        saveCatalog(r.commands, PATHS.catalog);
+        console.log(`Importado ${file}: ${r.added} novos, ${r.updated} atualizados → ${r.commands.length} comandos no catálogo.`);
         return;
       }
       const catalog = Catalog.load(PATHS.catalog);
@@ -202,7 +224,7 @@ async function main() {
         for (const c of catalog.categories()) console.log(`${c.name}: ${c.count}`);
         return;
       }
-      console.error('Uso: catalog convert|search|get|categories');
+      console.error('Uso: catalog convert|import|search|get|categories');
       process.exitCode = 2;
       return;
     }

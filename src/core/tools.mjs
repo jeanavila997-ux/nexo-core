@@ -2,6 +2,7 @@
 // Mesma implementação serve para: (1) tools MCP expostas via protocolo,
 // (2) ações do loop ReAct do agente. Uma única fonte de verdade.
 import { runPowerShell } from './executor.mjs';
+import { resolveCommand } from './catalog.mjs';
 
 // Cada tool: name → { description, inputSchema, handler(args) → { ok, text } }
 // Regra do harness: mensagens de erro dizem o que fazer a seguir.
@@ -13,7 +14,7 @@ export function buildTools({ catalog, policy, memory, skills, audit, agentRunner
 
   tools.set('catalog_search', {
     description:
-      'Busca comandos no catálogo de manutenção do Windows (452 comandos PowerShell). ' +
+      `Busca comandos no catálogo de manutenção do Windows (${catalog.size} comandos PowerShell). ` +
       'Use ANTES de catalog_run para descobrir o id exato. Termos em português funcionam melhor.',
     inputSchema: {
       type: 'object',
@@ -39,7 +40,8 @@ export function buildTools({ catalog, policy, memory, skills, audit, agentRunner
       }
       const lines = items.map(
         (c) =>
-          `- [${c.category}] ${c.id} — ${c.title}${c.destructive ? ' ⚠️DESTRUTIVO' : ''}\n  cmd: ${c.cmd}`,
+          `- [${c.category}] ${c.id} — ${c.title}${c.destructive ? ' ⚠️DESTRUTIVO' : ''}` +
+          `${c.params ? `\n  params: ${Object.keys(c.params).join(', ')}` : ''}\n  cmd: ${c.cmd}`,
       );
       return { ok: true, text: `${items.length} resultado(s):\n${lines.join('\n')}` };
     },
@@ -59,7 +61,12 @@ export function buildTools({ catalog, policy, memory, skills, audit, agentRunner
       }
       return {
         ok: true,
-        text: `id: ${c.id}\ntítulo: ${c.title}\ncategoria: ${c.category}\ndestrutivo: ${c.destructive ? 'SIM ⚠️' : 'não'}\ncmd: ${c.cmd}`,
+        text:
+          `id: ${c.id}\ntítulo: ${c.title}\ncategoria: ${c.category}\ndestrutivo: ${c.destructive ? 'SIM ⚠️' : 'não'}` +
+          (c.riskTier ? `\nrisco: ${c.riskTier}` : '') +
+          (c.description ? `\ndescrição: ${c.description}` : '') +
+          (c.params ? `\nparams (obrigatórios): ${Object.entries(c.params).map(([k, r]) => `${k} = ${r}`).join(' | ')}` : '') +
+          `\ncmd: ${c.cmd}`,
       };
     },
   });
@@ -76,13 +83,19 @@ export function buildTools({ catalog, policy, memory, skills, audit, agentRunner
   tools.set('catalog_run', {
     description:
       'Executa um comando do catálogo pelo id. Comandos destrutivos exigem {"confirm": true}. ' +
-      'Use {"dry_run": true} para pré-visualizar o que será executado sem rodar.',
+      'Use {"dry_run": true} para pré-visualizar o que será executado sem rodar. ' +
+      'Comandos com parâmetros exigem {"params": {...}} (veja catalog_get).',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'string', description: 'id do comando (descubra com catalog_search)' },
         confirm: { type: 'boolean', description: 'true para autorizar comando destrutivo' },
         dry_run: { type: 'boolean', description: 'true para pré-visualizar sem executar' },
+        params: {
+          type: 'object',
+          description: 'Valores dos parâmetros do comando (ex.: {"pasta": "C:\\Projetos"}). Cada valor é validado por regex.',
+          additionalProperties: { type: 'string' },
+        },
       },
       required: ['id'],
     },
@@ -92,19 +105,26 @@ export function buildTools({ catalog, policy, memory, skills, audit, agentRunner
       if (!cmd) {
         return { ok: false, text: `Comando '${id}' não existe. Use catalog_search para achar o id correto.` };
       }
+      // Parâmetros são validados ANTES de tudo (inclusive do dry-run).
+      const resolved = resolveCommand(cmd, args.params);
+      if (!resolved.ok) {
+        audit?.log({ tool: 'catalog_run', args: { id, params_rejected: true }, ok: false, ms: 0, summary: resolved.error.slice(0, 200) });
+        return { ok: false, text: resolved.error };
+      }
+      const runnable = { ...cmd, cmd: resolved.cmd };
       // dry-run vem ANTES do gate: pré-visualizar não executa nada e
       // ajuda o agente (e o humano) a decidir antes de confirmar.
       if (args.dry_run) {
-        const r = await runPowerShell({ cmd: cmd.cmd, dryRun: true });
+        const r = await runPowerShell({ cmd: runnable.cmd, dryRun: true });
         return { ok: true, text: `DRY-RUN (nada executado):\n${r.cmd}` };
       }
-      const gate = policy.checkRun(cmd, args);
+      const gate = policy.checkRun(runnable, args);
       if (!gate.allowed) {
         return { ok: false, text: `BLOQUEADO pelo gate de permissão: ${gate.reason}` };
       }
       const t0 = Date.now();
       const r = await runPowerShell({
-        cmd: cmd.cmd,
+        cmd: runnable.cmd,
         timeoutMs: policy.timeout_ms,
         maxOutputChars: policy.max_output_chars,
       });
@@ -112,7 +132,7 @@ export function buildTools({ catalog, policy, memory, skills, audit, agentRunner
       if (r.stdout.trim()) parts.push(`stdout:\n${r.stdout.trim()}`);
       if (r.stderr.trim()) parts.push(`stderr:\n${r.stderr.trim()}`);
       const summary = `${id} → exit ${r.exitCode} (${r.ms} ms)`;
-      audit?.log({ tool: 'catalog_run', args: { id, confirm: args.confirm ?? false }, ok: r.ok, ms: Date.now() - t0, summary });
+      audit?.log({ tool: 'catalog_run', args: { id, confirm: args.confirm ?? false, params: args.params ? Object.keys(args.params) : undefined }, ok: r.ok, ms: Date.now() - t0, summary });
       if (!r.ok) {
         parts.push('DICA: rode {"dry_run": true} para rever o comando; verifique o stderr acima para corrigir.');
       }
